@@ -1,0 +1,6 @@
+{
+  "name": "Code Debugging Competition Arena",
+  "description": "Multi-language code debugging contest platform for Python, C++, and Java with Easy, Intermediate, and Hard difficulty levels, automated answer evaluation, anti-cheat detection, Telegram bot security alerts, Groq API integration, and full Bash script orchestration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
