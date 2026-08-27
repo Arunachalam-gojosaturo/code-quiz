@@ -12,6 +12,33 @@ import type { Difficulty, LanguageTrack, Problem } from './src/types';
 dotenv.config();
 dotenv.config({ path: '.env.local' });
 
+function normalizeEnvValue(value: string | undefined): string {
+  const trimmed = (value || '').trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return trimmed.slice(1, -1).trim();
+    }
+  }
+  return trimmed;
+}
+
+function loadEnvironmentAliases() {
+  const aliases: Record<string, string[]> = {
+    ADMIN_SECRET: ['ADMIN_PASSWORD', 'ADMIN_PASSPHRASE', 'ADMIN_PASS_PHRASE'],
+    GEMINI_API_KEY: ['GOOGLE_API_KEY', 'GOOGLE_GEMINI_API_KEY'],
+    GROQ_API_KEY: ['GROQ_APIKEY']
+  };
+
+  for (const [canonical, alternatives] of Object.entries(aliases)) {
+    const source = process.env[canonical] || alternatives.map(name => process.env[name]).find(Boolean);
+    if (source) process.env[canonical] = normalizeEnvValue(source);
+  }
+}
+
+loadEnvironmentAliases();
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const IS_VERCEL = Boolean(process.env.VERCEL);
