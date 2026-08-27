@@ -32,6 +32,7 @@ export default function App() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attempts, setAttempts] = useState<Record<string, QuestionAttempt>>({});
+  const attemptsRef = useRef<Record<string, QuestionAttempt>>({});
   const [score, setScore] = useState(0);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [violationsCount, setViolationsCount] = useState(0);
@@ -76,6 +77,7 @@ export default function App() {
     setProblems(selectedProblems);
     setCurrentIndex(0);
     setAttempts({});
+    attemptsRef.current = {};
     setScore(0);
     setTimerSeconds(0);
     setViolationsCount(0);
@@ -111,7 +113,7 @@ export default function App() {
     feedbackText: string,
     hintsUsed: number = 0
   ) => {
-    const prev = attempts[problemId] || {
+    const prev = attemptsRef.current[problemId] || {
       problemId,
       status: 'pending',
       userAnswer: '',
@@ -141,10 +143,11 @@ export default function App() {
       answeredAt: Date.now()
     };
 
-    setAttempts(prevMap => ({
-      ...prevMap,
-      [problemId]: updatedAttempt
-    }));
+    setAttempts(prevMap => {
+      const next = { ...prevMap, [problemId]: updatedAttempt };
+      attemptsRef.current = next;
+      return next;
+    });
 
     if (status === 'correct') {
       setScore(s => s + marksAwarded);
@@ -157,7 +160,7 @@ export default function App() {
 
   // Handle Question Skip
   const handleSkipQuestion = (problemId: string) => {
-    const prev = attempts[problemId] || {
+    const prev = attemptsRef.current[problemId] || {
       problemId,
       status: 'pending',
       userAnswer: '',
@@ -180,10 +183,11 @@ export default function App() {
       answeredAt: Date.now()
     };
 
-    setAttempts(prevMap => ({
-      ...prevMap,
-      [problemId]: updatedAttempt
-    }));
+    setAttempts(prevMap => {
+      const next = { ...prevMap, [problemId]: updatedAttempt };
+      attemptsRef.current = next;
+      return next;
+    });
 
     advanceToNextQuestion();
   };
@@ -201,6 +205,9 @@ export default function App() {
   const finishContest = async () => {
     if (globalTimerRef.current) clearInterval(globalTimerRef.current);
     antiCheat.stop();
+    // React state updates are asynchronous; use the ref so the final answer
+    // cannot be omitted when the last submission immediately finishes the contest.
+    const recordedAttempts = attemptsRef.current;
 
     const totalDuration = Math.round((Date.now() - startTimeRef.current) / 1000);
     let correctCount = 0;
@@ -221,7 +228,7 @@ export default function App() {
     const marksPerQuestion = isEasy ? 10 : isIntermediate ? 20 : 100;
 
     const detailedQuestions: DetailedQuestionResult[] = problems.map(p => {
-      const att = attempts[p.id] || { status: 'skipped', attemptsCount: 0, userAnswer: '', hintsUsed: 0, marksEarned: 0 };
+      const att = recordedAttempts[p.id] || { status: 'skipped', attemptsCount: 0, userAnswer: '', hintsUsed: 0, marksEarned: 0 };
       const isCorrect = att.status === 'correct';
       const isSkipped = att.status === 'skipped' || att.status === 'pending';
       const hints = att.hintsUsed || 0;
@@ -247,7 +254,7 @@ export default function App() {
         id: p.id,
         title: p.title,
         language: p.language,
-        status: isCorrect ? 'correct' : 'skipped',
+        status: att.status === 'pending' ? 'skipped' : att.status,
         attempts: att.attemptsCount || (isCorrect ? 1 : 0),
         hintsUsed: hints,
         timeSeconds: Math.round(totalDuration / Math.max(problems.length, 1)),
@@ -354,6 +361,7 @@ export default function App() {
     setScore(0);
     setTimerSeconds(0);
     setAttempts({});
+    attemptsRef.current = {};
   };
 
   return (

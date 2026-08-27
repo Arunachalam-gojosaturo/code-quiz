@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
-import app from '../server.ts';
 
 process.env.VERCEL = '1';
 
-export default function handler(req: Request, res: Response) {
+export default async function handler(req: Request, res: Response) {
+  const { default: app } = await import('../server.ts');
   return app(req, res);
 }
